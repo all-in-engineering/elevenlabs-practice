@@ -5,6 +5,11 @@ v_array_test4 = [10, 9]
 v_array_test5 = [9, 10]
 v_array_test6= [10, 9, 9, 8, 7, 8, 9, 9, 10]
 
+#questions from nimble:
+#1. implement function for both getting minimum and sorting a v array, 
+#which is when numbers are guaranteed to be equal/descending and then ascending after
+#2. implement summing of linkedlists: https://leetcode.com/problems/add-two-numbers/description/
+
 
 def getMinimum(v_array):
     if len(v_array) == 0:

@@ -78,6 +78,7 @@ if __name__ == "__main__":
     print(result)
 
 
+
 # ============================================================
 # Problem: Implement an OrderedIntStream
 #
@@ -204,3 +205,252 @@ class MergeStream:
                 return self.next()
             else:
                 return answer
+
+
+# ============================================================
+# Problem: Spreadsheet Cycle Detection (DFS)
+#
+# A spreadsheet is represented as a 2D grid where:
+#   - Rows are labeled by integers (1, 2, 3, ...)
+#   - Columns are labeled by letters (a, b, c, ...)
+#   - A cell is referenced as "<row><col>", e.g. "1a", "2c"
+#
+# Each cell contains either:
+#   - A raw integer value (e.g. 42)
+#   - A reference to another cell (e.g. "2c")
+#
+# Goal:
+#   Determine whether any cell reference creates a cycle.
+#   A cycle means following references from a cell eventually
+#   leads back to that same cell.
+#
+# Approach: DFS with cycle detection
+#   - Model the spreadsheet as a directed graph where an edge
+#     A -> B means cell A references cell B.
+#   - Use DFS with a "visited" and "in_stack" set to detect cycles.
+#   - If you reach a node that is already in the current DFS path,
+#     a cycle exists.
+#
+# Example:
+#   grid = {
+#       "1a": "2b",
+#       "2b": "3c",
+#       "3c": 42       # raw value, no cycle
+#   }
+#   => No cycle
+#
+#   grid = {
+#       "1a": "2b",
+#       "2b": "1a"     # references back to 1a => cycle!
+#   }
+#   => Cycle detected
+#
+# Key concepts:
+#   - Parse cell reference strings to look up the next cell
+#   - DFS traversal following references
+#   - Track "in_stack" nodes to distinguish back edges (cycles)
+#     from already-fully-explored nodes
+# ============================================================
+
+
+
+def checkCycle(grid):
+    for rowNumber in range(len(grid)):
+        for columnNumber in range(len(grid[rowNumber])):
+            nextSpot = grid[rowNumber][columnNumber]
+            seenSpots = set()
+            while (True):
+                if isinstance(nextSpot, int):
+                    break
+                else:
+                    if (nextSpot in seenSpots):
+                        return True
+                    seenSpots.add(nextSpot)
+                    nextSpot = grid[int(nextSpot[0])-1][ord(nextSpot[1]) - ord('a')]
+    return False
+
+# checkCycle tests
+# Test 1: no cycle — 1a -> 2b -> 3c -> 42
+grid1 = [
+    ['2b', 0,   0 ],
+    [0,   '3c', 0 ],
+    [0,   0,    42],
+]
+print('Test 1 (no cycle):', checkCycle(grid1))
+
+# Test 2: cycle — 1a -> 2a -> 1a
+grid2 = [
+    ['2a', 0],
+    ['1a', 0],
+]
+print('Test 2 (cycle):', checkCycle(grid2))
+
+
+# ============================================================
+# Problem: Implement a Mini Social Network
+#
+# Implement a SocialNetwork class with follow relationships
+# and a user feed. You must also write your own unit tests.
+#
+# Required Methods:
+#
+#   post(user_id, post_id, timestamp)
+#     - user publishes a post
+#
+#   follow(follower_id, followee_id)
+#     - create a follow relationship
+#
+#   unfollow(follower_id, followee_id)
+#     - remove a follow relationship
+#
+#   get_feed(user_id, k)
+#     - return up to k most recent posts from:
+#         * the user themselves
+#         * anyone they follow
+#     - sorted by timestamp descending (newest first)
+#
+# Edge Cases to Handle & Test:
+#   - get_feed for a user who has never posted
+#   - get_feed for a user who follows nobody
+#   - repeated follow calls (following same person twice)
+#   - unfollow a non-existing relationship (should not crash)
+#   - following oneself (decide: allow or disallow — be consistent)
+#   - equal timestamps (define a tie-breaker: post_id or insertion order)
+#
+# Deliverables:
+#   - Runnable implementation
+#   - Unit tests covering: normal flows, empty/missing cases,
+#     repeated operations, and equal timestamps
+# ============================================================
+
+class SocialNetwork:
+
+    def __init__(self):
+        self.followerTable = {}
+        self.feedTable = {}
+        self.postTable = {}
+    
+    def post(self, userId, postId, timestamp):
+        userPostList = self.postTable[userId]
+        newPostEntry = {"userId": userId, "postId": postId, "timestamp": timestamp}
+        followers = self.followerTable[userId]
+        for follower in followers:
+            currentFeed = self.feedTable.get(follower, [])
+            if (len(currentFeed) == 0):
+                currentFeed.append(newPostEntry)
+                self.feedTable[follower] = currentFeed
+                break
+
+            masterFeedList = list(currentFeed)
+            for index in range(len(masterFeedList)):
+                if currentFeed[index].get("timestamp") > timestamp:
+                    continue
+                elif currentFeed[index].get("timestamp") <= timestamp:
+                    currentFeed.insert(index, newPostEntry)
+            self.feedTable[follower] = currentFeed
+
+        if (len(userPostList) == 0):
+                userPostList.append(newPostEntry)
+
+        masterUserPostList = list(userPostList)
+
+        for post in masterUserPostList:
+            for index in range(len(userPostList)):
+                if userPostList[index].get("timestamp") > timestamp:
+                    continue
+                elif userPostList[index].get("timestamp") <= timestamp:
+                    userPostList.insert(index, newPostEntry)
+        self.postTable[userId] = userPostList
+
+    def follow(self, follower_id, followee_id):
+        followerList = self.followerTable.get(followee_id)
+        if (followerList is None):
+            followerList = set()
+        followerList.add(follower_id)
+        self.followerTable[followee_id] = followerList
+
+        followeePosts = self.postTable.get(followee_id)
+        followerFeed = self.feedTable.get(follower_id)
+
+        if followerFeed is None:
+            followerFeed = []
+
+        if (followeePosts is None):
+            self.postTable[followee_id] = []
+            return
+
+        for post in followeePosts:
+            for index in range(len(followerFeed)):
+                if index == 0 and post.get("timestamp") >= followerFeed[index+1]:
+                    followerFeed.insert(0, post)
+                    break
+                if index == len(followerFeed) - 1 and post.get("timestamp") <= followerFeed[index]:
+                    followerFeed.append(post)
+                    break
+                elif post.get("timestamp") <= followerFeed[index] and post.get("timestamp") >= followerFeed[index+1]:
+                    followerFeed.insert(index, post)
+                    break
+        self.feedTable[followee_id] = followerFeed
+
+
+    def unfollow(self, follower_id, followee_id):
+        followerList = self.followerTable.get(followee_id)
+        if (followerList is None):
+            return
+        if (followee_id in followerList):
+            followerList.remove(follower_id)
+            self.followerTable[followee_id] = followerList
+        followerFeedList = self.feedTable.get(follower_id)
+        masterFollowerFeedList = list(followerFeedList)
+        for post in masterFollowerFeedList:
+            if post.get("userId") == followee_id:
+                followerFeedList.remove(post)
+        self.feedTable[follower_id] = followerFeedList
+
+    def getFeed(self, userId, k):
+        return self.feedTable.get(userId, [])[:k]
+    
+    def getFollowers(self, userId):
+        followerList = self.followerTable.get(userId)
+        if followerList == None:
+            return []
+        else: 
+            return followerList
+
+
+testSocialNetwork1 = SocialNetwork()
+
+print(testSocialNetwork1.getFollowers(1))
+print(testSocialNetwork1.getFollowers(2))
+testSocialNetwork1.follow(1, 2)
+testSocialNetwork1.follow(2, 1)
+print(testSocialNetwork1.getFollowers(1))
+print(testSocialNetwork1.getFollowers(2))
+
+testSocialNetwork1.post(1, "postId1", 12)
+testSocialNetwork1.post(2, "postId2", 13)
+
+print(testSocialNetwork1.getFeed(1, 10))
+print(testSocialNetwork1.getFeed(2, 10))
+
+testSocialNetwork1.unfollow(2, 1)
+
+print(testSocialNetwork1.getFeed(1, 10))
+print(testSocialNetwork1.getFeed(2, 10))
+
+
+
+
+
+#1. Test follow and unfollow returns null
+#2. Test following two people returns two for that person
+#3. Test following two people for two seeparate people returns two for each of those
+#4. Test following two peoplee for two separate people followed by two unfollows returns 1 follwower each
+#5. Test unfollow someone when they don't follow returns same person
+
+#1. Create two users, h ave one follow the other, have two posts with same timestamp appear and getFeed - should be in same order
+#2. Same as 1, now add in one more epost, amke sure it shows up first (in same timestamp)
+#3. Then add another post that is in the past, make sure it shows up last
+#4. Then test add a newer post, show that it is first.
+
+#1. 

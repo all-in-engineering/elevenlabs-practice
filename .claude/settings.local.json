@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python *)",
-      "Bash(/opt/homebrew/bin/python3 *)"
+      "Bash(/opt/homebrew/bin/python3 *)",
+      "Bash(python3 *)"
     ]
   }
 }

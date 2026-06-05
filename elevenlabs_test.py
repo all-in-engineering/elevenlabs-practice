@@ -12,6 +12,9 @@
 # which takes the starting points of two sequences and then returns the join point of these sequences.
 # You are guaranteed that the two given sequences always join, at a joining point lower than 20,000,000.
 
+
+#print("Debug messages...", file=sys.stderr, flush=True)
+
 def compute_join_point(input1, input2):
     input1Map = set()
     input2Map = set()
@@ -92,6 +95,9 @@ print(compute('A', ['A', 'B', 'C'], ['B', 'C', 'B']))  # expected: Loop detected
 # Example:
 # Input:  grid = [[1, 0, 2], [4, 1, 0], [0, 3, 1]], wind = "RR"
 # Output: 4
+
+
+#there was a Test case where they giv eyou a long string of UDUDUDUDUD
 
 def sum_leaves(grid, windString):
     currentGridState = grid

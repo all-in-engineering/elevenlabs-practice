@@ -84,3 +84,99 @@ def getMaxLength(lengths):
         if length > currentMax:
             currentMax = length
     return currentMax
+
+
+# Problem: Nested Transactional Key-Value Store
+#
+# Implement an in-memory nested transactional key-value store with the following operations:
+#
+#   PUT key value  - Set the value of a key.
+#   GET key        - Get the value of a key.
+#   BEGIN          - Start a new transaction.
+#   COMMIT         - Commit all changes in the current transaction.
+#   ROLLBACK       - Roll back all changes in the current transaction.
+#
+# Requirements: Support nested transactions where a transaction can start another
+# transaction, and can commit or rollback at any level.
+#
+# Process these operations, ensuring correct commit and rollback functionality.
+#
+# Example Input:
+#   BEGIN
+#   PUT a 10
+#   PUT b 3
+#   GET a
+#   ROLLBACK
+#   COMMIT
+#
+# Output Description:
+#   Each command is processed by the implemented method in sequence.
+#   Ensure methods can immediately output results when commands are received,
+#   especially the GET operation should return the current value right away.
+
+class KVStore:
+
+    def __init__(self):
+        self.parent = None   #list of parent kvstores
+        self.parentKvstore = {} #official commited kv store of parent
+        self.uncommittedKvstore = {} #current KV store's uncommitted kvsstore
+        self.currentKvstore = {} #nested (current) kv store's official kvstore
+        self.currentTransaction = self
+
+    
+    def input(self, command):
+        if command == "BEGIN":
+            childKVstore = KVStore()
+            childKVstore.currentKvstore = dict(self.currentTransaction.uncommittedKvstore)
+            childKVstore.uncommittedKvstore = dict(self.currentTransaction.uncommittedKvstore)
+            childKVstore.parent = self
+            self.currentTransaction = childKVstore
+            return
+        elif command == "COMMIT":
+            if self.currentTransaction is None:
+                return
+            self.currentTransaction.currentKvstore = self.currentTransaction.uncommittedKvstore
+            if self.parent is None:
+                return
+            self.parent.uncommitedKvstore = self.currentTransaction.currentKvstore
+            self.parent.currentTransaction = self.parent
+            return
+        elif command == "ROLLBACK":
+            self.currentTransaction.uncommittedKvstore = dict(self.parentKvstore)
+            self.currentTransaction.currentKvstore = dict(self.parentKvstore)
+            return
+        elif command.split()[0] == "GET":
+            return self.currentTransaction.uncommittedKvstore.get(command.split()[1])
+        elif command.split()[0] == "PUT":
+            self.currentTransaction.uncommittedKvstore[command.split()[1]] = command.split()[2]
+            return
+
+
+
+print("--- Original Example ---")
+store = KVStore()
+print("BEGIN:", store.input("BEGIN"))
+print("PUT a 10:", store.input("PUT a 10"))
+print("PUT b 3:", store.input("PUT b 3"))
+print("GET a:", store.input("GET a"))       # expected: 10
+print("ROLLBACK:", store.input("ROLLBACK"))
+print("COMMIT:", store.input("COMMIT"))
+
+print("\n--- Nested Transaction Test ---")
+store2 = KVStore()
+print("BEGIN:", store2.input("BEGIN"))
+print("PUT a 10:", store2.input("PUT a 10"))
+print("BEGIN (inner):", store2.input("BEGIN"))
+print("PUT a 20:", store2.input("PUT a 20"))
+print("GET a:", store2.input("GET a"))        # expected: 20 (inner sees a=20)
+print("COMMIT (inner):", store2.input("COMMIT"))
+print("GET a:", store2.input("GET a"))        # expected: 20 (merged into outer)
+print("ROLLBACK (outer):", store2.input("ROLLBACK"))
+print("GET a:", store2.input("GET a"))        # expected: None (outer rolled back)
+
+print("\n--- Inheritance Test ---")
+store3 = KVStore()
+print("BEGIN:", store3.input("BEGIN"))
+print("PUT a 10:", store3.input("PUT a 10"))
+print("BEGIN (inner):", store3.input("BEGIN"))
+print("GET a:", store3.input("GET a"))        # expected: 10 (inherited from outer)

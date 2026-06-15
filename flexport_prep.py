@@ -58,7 +58,7 @@ Main Algorithm:
 """
 
 def robhouses(numHouses, moneyPerHouse):
-    return robHousesHelper(moneyPerHouse, {}, numHouses)[0]
+    return robHousesHelper(moneyPerHouse, 0, {}, numHouses)[0]
 
 #memoizedDictionary is O(N) because when we've computed optimal value starting at an index, we just keep looking it up, and there are N positions to calculate
 
@@ -66,19 +66,19 @@ def robHousesHelper(moneyPerHouse, memoizedDictionary, originalLength):
     if originalLength - len(moneyPerHouse) in memoizedDictionary:
         return [memoizedDictionary[originalLength - len(moneyPerHouse)], memoizedDictionary]
     if (len(moneyPerHouse) == 0):
-        memoizedDictionary[originalLength - len(moneyPerHouse)] = 0
-        return [0, memoizedDictionary]
+        memoizedDictionary[originalLength - len(moneyPerHouse)] = sumSoFar
+        return [sumSoFar, memoizedDictionary]
     if (len(moneyPerHouse) == 1):
-        memoizedDictionary[originalLength - len(moneyPerHouse)] = moneyPerHouse[0]
-        return [moneyPerHouse[0], memoizedDictionary]
+        memoizedDictionary[originalLength - len(moneyPerHouse)] = sumSoFar + moneyPerHouse[0]
+        return [sumSoFar + moneyPerHouse[0], memoizedDictionary]
     if (len(moneyPerHouse) == 2):
         largerSum = moneyPerHouse[1] if moneyPerHouse[1] > moneyPerHouse[0] else moneyPerHouse[0]
-        memoizedDictionary[originalLength - len(moneyPerHouse)] = largerSum
-        return [largerSum, memoizedDictionary]
+        memoizedDictionary[originalLength - len(moneyPerHouse)] = largerSum + sumSoFar
+        return [largerSum + sumSoFar, memoizedDictionary]
 
     #For the case where we use the first value:
-    includeFirstValue = robHousesHelper(moneyPerHouse[2:] , memoizedDictionary, originalLength)
-    skipFirstValue = robHousesHelper(moneyPerHouse[1:], memoizedDictionary, originalLength)
+    includeFirstValue = robHousesHelper(moneyPerHouse[2:], moneyPerHouse[0] + sumSoFar, memoizedDictionary, originalLength)
+    skipFirstValue = robHousesHelper(moneyPerHouse[1:], sumSoFar, memoizedDictionary, originalLength)
 
     if includeFirstValue[0] > skipFirstValue[0]:
         memoizedDictionary[originalLength - len(moneyPerHouse)] = includeFirstValue[0]
